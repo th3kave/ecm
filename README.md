@@ -12,7 +12,7 @@ The motivation being that if a branch fails, it does so in isolation, and when a
 
 This has the following advantages:
 
- * An operation can complete partially, in which case, data modified in completed branches will be in a consistent state
+ * An operation can complete partially, in which case, data modified by completed branches will be in a consistent state
  * Failed branches can be retried in order to *eventually* complete the operation
  * If the operation is still incomplete after retries, knowing which branches completed successfully and which failed could considerably simplify troubleshooting
  * Operations that interact with multiple resource managers can be made transactional on a per branch basis, with each resource manger interaction in a separate branch, coordinated by a resource-local transaction manager
