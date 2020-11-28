@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import com.bitsandgates.ecm.annotation.AfterBranches;
 import com.bitsandgates.ecm.annotation.BeforeBranches;
+import com.bitsandgates.ecm.annotation.LoopBranch;
 import com.bitsandgates.ecm.domain.BranchError;
 import com.bitsandgates.ecm.domain.BranchInput;
 import com.bitsandgates.ecm.domain.BranchOutput;
@@ -35,7 +36,8 @@ public class UtilsTest {
 
     @Test
     void given_validBeforeBranchesMethodWithExtendedInOut_when_createBeforeBranches_then_created() throws Exception {
-        Object obj = Utils.createBeforeBranches(this, getClass().getMethod("validBeforeBranchesExtendedInOut", ExtendedOperationContext.class), null);
+        Object obj = Utils.createBeforeBranches(this, getClass().getMethod("validBeforeBranchesExtendedInOut", ExtendedOperationContext.class),
+                null);
         assertThat(obj).isNotNull();
     }
 
@@ -47,13 +49,21 @@ public class UtilsTest {
 
     @Test
     void given_validAfterBranchesMethodWithExtendedInOut_when_createAfterBranches_then_created() throws Exception {
-        Object obj = Utils.createAfterBranches(this, getClass().getMethod("validAfterBranchesExtendedInOut", ExtendedOperationContext.class), null);
+        Object obj = Utils.createAfterBranches(this, getClass().getMethod("validAfterBranchesExtendedInOut", ExtendedOperationContext.class),
+                null);
         assertThat(obj).isNotNull();
     }
 
     @Test
     void given_validBranchMethod_when_createBranch_then_created() throws Exception {
         Optional<Branch> branch = Utils.createBranch(this, getClass().getMethod("validBranch", BranchContext.class), null);
+        assertThat(branch.isPresent()).isTrue();
+    }
+
+    @Test
+    void given_validLoopBranchMethod_when_createBranch_then_created() throws Exception {
+        Optional<Branch> branch = Utils.createLoopBranch(this, getClass().getMethod("validLoopBranch", BranchContext.class, int.class),
+                null);
         assertThat(branch.isPresent()).isTrue();
     }
 
@@ -89,6 +99,11 @@ public class UtilsTest {
         return null;
     }
 
+    @LoopBranch
+    public BranchOutput<?> validLoopBranch(BranchContext context, int i) {
+        return null;
+    }
+
     @com.bitsandgates.ecm.annotation.Branch
     public ExtendedBranchOutput<?> validBranchExtendedInOut(ExtendedBranchContext context) {
         return null;
@@ -120,7 +135,7 @@ public class UtilsTest {
     public static class ExtendedBranchOutput<T> extends BranchOutput<T> {
 
         ExtendedBranchOutput(String branchId, BranchError error, T result) {
-            super(branchId, error, result);
+            super(branchId, error, 0, result);
         }
     }
 

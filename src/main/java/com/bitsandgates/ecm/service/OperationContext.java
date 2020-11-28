@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 @Getter
+//@Builder
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class OperationContext {
 
@@ -36,7 +37,16 @@ public class OperationContext {
     private BranchInput<?> branchInput;
 
     @Getter(AccessLevel.NONE)
-    private Map<String, BranchOutput<?>> branchOutputs = new HashMap<>();
+    private Map<String, BranchOutputs> branchOutputs = new HashMap<>();
+
+    private BranchOutputs getOutputs(String branchId) {
+        BranchOutputs outputs = branchOutputs.get(branchId);
+        if (outputs == null) {
+            outputs = new BranchOutputs();
+            branchOutputs.put(branchId, outputs);
+        }
+        return outputs;
+    }
 
     boolean hasError() {
         return branchOutputs.values().stream().filter(o -> o.isError()).findFirst().map(__ -> true).orElse(false);
@@ -51,16 +61,18 @@ public class OperationContext {
     }
 
     void addBranchOutput(BranchOutput<?> output) {
-        branchOutputs.put(output.getBranchId(), output);
+        getOutputs(output.getBranchId()).addOutput(output);
     }
 
     @SuppressWarnings("unchecked")
     public <T> BranchOutput<T> getBranchOutput(String branchId) {
-        return (BranchOutput<T>) branchOutputs.get(branchId);
+        return (BranchOutput<T>) getOutputs(branchId).getOutput(0);
     }
 
     public List<BranchOutput<?>> getBrancheOutputs() {
-        return new ArrayList<>(branchOutputs.values());
+        List<BranchOutput<?>> outputs = new ArrayList<>();
+        branchOutputs.values().forEach(o -> outputs.addAll(o.getAll()));
+        return outputs;
     }
 
     @SuppressWarnings("unchecked")
@@ -71,11 +83,21 @@ public class OperationContext {
     public Response.ResponseBuilder responseBuilder() {
         return Response.builder().traceId(request.getTraceId()).operationId(request.getOperatonId());
     }
-    
+
+    Response loopBranch(String branchId, int count, int concurrency, BranchInput<?> input) {
+        return service.loopBranch(Loop.builder()
+                .context(new OperationContext(service, request))
+                .branchId(branchId)
+                .count(count)
+                .concurrency(concurrency)
+                .input(input)
+                .build());
+    }
+
     public String getTraceId() {
         return request.getTraceId();
     }
-    
+
     public String getOperationId() {
         return request.getOperatonId();
     }

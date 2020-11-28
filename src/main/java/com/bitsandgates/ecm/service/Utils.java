@@ -9,6 +9,7 @@ LICENSE file in the root directory of this source tree.
 package com.bitsandgates.ecm.service;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.concurrent.CompletableFuture.allOf;
 import static java.util.stream.Collectors.toList;
 
@@ -24,6 +25,7 @@ import java.util.function.Function;
 import com.bitsandgates.ecm.ProxyFactory;
 import com.bitsandgates.ecm.annotation.AfterBranches;
 import com.bitsandgates.ecm.annotation.BeforeBranches;
+import com.bitsandgates.ecm.annotation.LoopBranch;
 import com.bitsandgates.ecm.domain.BranchInput;
 import com.bitsandgates.ecm.domain.BranchOutput;
 import com.bitsandgates.ecm.domain.OperationValidationException;
@@ -59,6 +61,28 @@ class Utils {
             throw new OperationValidationException(
                     String.format("Invalid [branch] parameter type [%s] must be assignable to [BranchContext]",
                             method.getParameters()[0].getType().getSimpleName()));
+        }
+    }
+
+    private static void validateLoopBranchMethodSignature(Method method) {
+        if (!BranchOutput.class.isAssignableFrom(method.getReturnType())) {
+            throw new OperationValidationException(
+                    String.format("Invalid [branch] return type [%s] must be assignable to [BranchOutput]",
+                            method.getReturnType().getSimpleName()));
+        }
+        if (method.getParameterCount() != 2) {
+            throw new OperationValidationException(
+                    String.format("Invalid [branch] parameter count [%d] must be [1]", method.getParameterCount()));
+        }
+        if (!BranchContext.class.isAssignableFrom(method.getParameters()[0].getType())) {
+            throw new OperationValidationException(
+                    String.format("Invalid [branch] parameter type [%s] must be assignable to [BranchContext]",
+                            method.getParameters()[0].getType().getSimpleName()));
+        }
+        if (!int.class.isAssignableFrom(method.getParameters()[1].getType())) {
+            throw new OperationValidationException(
+                    String.format("Invalid [branch] parameter type [%s] must be assignable to [int]",
+                            method.getParameters()[1].getType().getSimpleName()));
         }
     }
 
@@ -106,6 +130,19 @@ class Utils {
             }
             List<String> dependencies = asList(branch.dependencies());
             return Optional.of(new Branch(branchId, getObject(proxyFactory, obj), method, dependencies, branch.deterministic()));
+        }
+        return Optional.empty();
+    }
+
+    static Optional<Branch> createLoopBranch(Object obj, Method method, ProxyFactory proxyFactory) {
+        LoopBranch branch = method.getAnnotation(LoopBranch.class);
+        if (branch != null) {
+            validateLoopBranchMethodSignature(method);
+            String branchId = branch.branchId();
+            if (branchId.length() == 0) {
+                branchId = method.getName();
+            }
+            return Optional.of(new Branch(branchId, getObject(proxyFactory, obj), method, emptyList(), branch.deterministic()));
         }
         return Optional.empty();
     }

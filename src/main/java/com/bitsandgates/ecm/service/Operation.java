@@ -16,10 +16,13 @@ import static java.util.stream.Collectors.toMap;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 import com.bitsandgates.ecm.ProxyFactory;
@@ -37,15 +40,19 @@ import lombok.SneakyThrows;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class Operation {
 
+    private static final int MAX_LOOP_CONCURRENCYE = 10;
+
     @Getter
     private final String id;
 
     private final List<Branch> branches;
 
+    private final Map<String, Branch> loopBranches;
+
     private final Function<OperationContext, BranchInput<?>> beforeBranches;
 
     private final Function<OperationContext, Response> afterBranches;
-    
+
     public static void bindToServcie(Service service, Object obj) {
         service.addOperation(create(obj));
     }
@@ -53,7 +60,7 @@ public class Operation {
     public static void bindToServcie(Service service, Object obj, ProxyFactory proxyFactory) {
         service.addOperation(create(obj, proxyFactory));
     }
-    
+
     static Operation create(Object obj) {
         return create(obj, null);
     }
@@ -62,12 +69,14 @@ public class Operation {
         Class<?> clazz = obj.getClass();
         String operationId = clazz.getName();
         List<Branch> branches = new ArrayList<>();
+        Map<String, Branch> loopBranches = new HashMap<>();
         Function<OperationContext, BranchInput<?>> beforeBranches = null;
         Function<OperationContext, Response> aftertBranches = null;
 
         for (Method method : clazz.getMethods()) {
 
             Utils.createBranch(obj, method, proxyFactory).ifPresent(branch -> branches.add(branch));
+            Utils.createLoopBranch(obj, method, proxyFactory).ifPresent(branch -> loopBranches.put(branch.getId(), branch));
 
             if (beforeBranches == null) {
                 beforeBranches = Utils.createBeforeBranches(obj, method, proxyFactory);
@@ -76,7 +85,7 @@ public class Operation {
                 aftertBranches = Utils.createAfterBranches(obj, method, proxyFactory);
             }
         }
-        return new Operation(operationId, branches, beforeBranches, aftertBranches);
+        return new Operation(operationId, branches, loopBranches, beforeBranches, aftertBranches);
     }
 
     BranchInput<?> defaultBeforeBranches(OperationContext context) {
@@ -123,6 +132,39 @@ public class Operation {
         return getResponse(context);
     }
 
+    @SneakyThrows
+    Response loopBranch(Loop loop) {
+        OperationContext context = loop.getContext();
+
+        BranchInput<?> input;
+        Map<String, BranchOutput<?>> outputs;
+        Retry retry = loop.getRetry();
+        if (retry != null) {
+            input = retry.getBranchInput();
+            outputs = getCompletedBranchOutputsForLoop(retry);
+        } else {
+            input = loop.getInput();
+            outputs = emptyMap();
+        }
+
+        context.setBranchInput(input);
+
+        Branch branch = loopBranches.get(loop.getBranchId());
+
+        Map<String, CompletableFuture<BranchOutput<?>>> results = initResults(loop.getBranchId(), loop.getCount());
+        ExecutorService executor = Executors.newFixedThreadPool(getConcurrency(loop));
+
+        for (int i = 0; i < loop.getCount(); i++) {
+            executeBranchIteration(executor, context, branch, i, results, outputs.get(indexedResultKey(branch.getId(), i)));
+        }
+
+        combineAllFutures(results.values()).get().forEach(output -> context.addBranchOutput(output));
+
+        executor.shutdown();
+
+        return getResponse(context);
+    }
+
     void executeBranch(OperationContext context, Branch branch, Map<String, CompletableFuture<BranchOutput<?>>> results,
             BranchOutput<?> output) {
         CompletableFuture<BranchOutput<?>> result = results.get(branch.getId());
@@ -131,6 +173,18 @@ public class Operation {
         } else {
             BranchContext ctx = new BranchContext(branch.getId(), context, extractDependencyResults(branch, results));
             context.getService().getExecutorService().execute(() -> result.complete(branch.run(ctx.waitForDependencies())));
+        }
+    }
+
+    void executeBranchIteration(ExecutorService executor, OperationContext context, Branch branch, int index,
+            Map<String, CompletableFuture<BranchOutput<?>>> results,
+            BranchOutput<?> output) {
+        CompletableFuture<BranchOutput<?>> result = results.get(indexedResultKey(branch.getId(), index));
+        if (output != null && branch.isDeterministic()) {
+            result.complete(output);
+        } else {
+            BranchContext ctx = new BranchContext(branch.getId(), context, emptyList());
+            executor.execute(() -> result.complete(branch.run(ctx, index)));
         }
     }
 
@@ -145,8 +199,33 @@ public class Operation {
         return retry.getOutputs().stream().filter(output -> !output.isRetry()).collect(toMap(BranchOutput::getBranchId, output -> output));
     }
 
+    private static Map<String, BranchOutput<?>> getCompletedBranchOutputsForLoop(Retry retry) {
+        return retry.getOutputs().stream().filter(output -> !output.isRetry())
+                .collect(toMap(output -> indexedResultKey(output.getBranchId(), output.getIndex()), output -> output));
+    }
+
     private Map<String, CompletableFuture<BranchOutput<?>>> initResults() {
         return branches.stream().collect(toMap(Branch::getId, __ -> new CompletableFuture<>()));
+    }
+
+    private Map<String, CompletableFuture<BranchOutput<?>>> initResults(String branchId, int count) {
+        Map<String, CompletableFuture<BranchOutput<?>>> results = new HashMap<>();
+        for (int i = 0; i < count; i++) {
+            results.put(indexedResultKey(branchId, i), new CompletableFuture<>());
+        }
+        return results;
+    }
+
+    private static String indexedResultKey(String branchId, int index) {
+        return branchId + "." + index;
+    }
+
+    private static int getConcurrency(Loop loop) {
+        int size = loop.getConcurrency();
+        if (size == 0 || size > MAX_LOOP_CONCURRENCYE) {
+            size = MAX_LOOP_CONCURRENCYE;
+        }
+        return size;
     }
 
     private Response getResponse(OperationContext ctx) {

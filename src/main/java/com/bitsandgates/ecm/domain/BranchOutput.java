@@ -23,6 +23,8 @@ public class BranchOutput<T> {
     private String branchId;
 
     private BranchError error;
+    
+    private int index;
 
     private T result;
 

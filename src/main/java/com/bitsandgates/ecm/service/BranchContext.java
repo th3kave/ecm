@@ -19,6 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import com.bitsandgates.ecm.domain.BranchError;
 import com.bitsandgates.ecm.domain.BranchInput;
 import com.bitsandgates.ecm.domain.BranchOutput;
+import com.bitsandgates.ecm.domain.Response;
 
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -102,5 +103,13 @@ public class BranchContext {
 
     public int getRetryCount() {
         return operationContext.getRetryCount();
+    }
+
+    public Response loopBranch(String branchId, int count, BranchInput<?> input) {
+        return loopBranch(branchId, count, 0, input);
+    }
+
+    public Response loopBranch(String branchId, int count, int concurrency, BranchInput<?> input) {
+        return operationContext.loopBranch(branchId, count, concurrency, input);
     }
 }

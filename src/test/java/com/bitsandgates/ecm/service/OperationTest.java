@@ -31,6 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.bitsandgates.ecm.annotation.AfterBranches;
 import com.bitsandgates.ecm.annotation.BeforeBranches;
 import com.bitsandgates.ecm.annotation.Branch;
+import com.bitsandgates.ecm.annotation.LoopBranch;
 import com.bitsandgates.ecm.domain.BranchError;
 import com.bitsandgates.ecm.domain.BranchInput;
 import com.bitsandgates.ecm.domain.BranchOutput;
@@ -62,6 +63,9 @@ public class OperationTest {
 
     @Spy
     private OpWithNonDeterministicBranch opWithNonDeterministicBranch = new OpWithNonDeterministicBranch();
+
+    @Spy
+    private OpWithLoop opWithLoop = new OpWithLoop();
 
     private static final String traceId = "traceId";
 
@@ -206,6 +210,23 @@ public class OperationTest {
         verify(opWithNonDeterministicBranch, times(1)).branch2(any(BranchContext.class));
         verify(opWithNonDeterministicBranch, times(2)).fail(any(BranchContext.class));
     }
+    
+    @Test
+    void given_requestWithLoop_when_executeRequest_then_branchLooped() {
+        Operation operation = Operation.create(opWithLoop);
+        OperationContext context = createContext(OpWithLoop.class.getName());
+        Loop loop = Loop.builder()
+                .branchId("branch3")
+                .concurrency(5)
+                .count(10)
+                .context(context)
+                .build();
+        Response response = operation.loopBranch(loop);
+
+        assertNotNull(response);
+
+        verify(opWithLoop, times(10)).branch3(any(BranchContext.class), any(int.class));
+    }
 
     static BranchOutput<?> getBranchOutput(List<BranchOutput<?>> outputs, String branchId) {
         for (BranchOutput<?> output : outputs) {
@@ -282,4 +303,12 @@ public class OperationTest {
         }
     }
 
+    static class OpWithLoop extends Op {
+
+        @LoopBranch
+        public BranchOutput<?> branch3(BranchContext context, int index) {
+            System.out.println(index);
+            return context.outputBuilder(Void.class).build();
+        }
+    }
 }

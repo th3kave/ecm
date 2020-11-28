@@ -25,6 +25,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bitsandgates.ecm.annotation.Branch;
+import com.bitsandgates.ecm.annotation.LoopBranch;
 import com.bitsandgates.ecm.domain.BranchInput;
 import com.bitsandgates.ecm.domain.BranchOutput;
 import com.bitsandgates.ecm.domain.Request;
@@ -97,9 +98,9 @@ public class EcmITest {
                 .build();
         Response response = service.process(request);
         List<BranchOutput<?>> payload = (List<BranchOutput<?>>) response.getRetry().getOutputs();
-        assertThat(payload).hasSize(3);
+        assertThat(payload).hasSize(4);
         assertThat(payload.stream().filter(e -> e.getBranchId().equals("successBranch")).findFirst().map(o -> o.getResult()).get())
-                .isEqualTo(1);
+                .isEqualTo(11);
     }
 
     @Component
@@ -218,6 +219,20 @@ public class EcmITest {
         public BranchOutput<Integer> successBranch(BranchContext context) {
             Integer count = jdbcTemplate.queryForObject("select count(*) from test", Integer.class);
             return context.outputBuilder(Integer.class).result(count).build();
+        }
+        
+        @Branch
+        public BranchOutput<Void> loopCaller(BranchContext context) {
+            context.loopBranch("loop", 10, null);
+            return context.outputBuilder(Void.class).build();
+        }
+
+        @Transactional
+        @LoopBranch
+        public BranchOutput<Void> loop(BranchContext context, int index) {
+            String sql = String.format("insert into test values('%d', 'b')", index + 10);
+            jdbcTemplate.execute(sql);
+            return context.outputBuilder(Void.class).build();
         }
     }
 }

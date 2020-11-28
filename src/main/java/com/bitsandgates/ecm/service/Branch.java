@@ -45,4 +45,15 @@ class Branch {
             return context.outputBuilder(Void.class, t, canRetry).build();
         }
     }
+
+    @SneakyThrows
+    public BranchOutput<?> run(BranchContext context, int index) {
+        try {
+            return (BranchOutput<?>) exe.invoke(impl, context, index);
+        } catch (InvocationTargetException e) {
+            Throwable t = e.getTargetException();
+            boolean canRetry = t instanceof NonRecoverableBranchException == false;
+            return context.outputBuilder(Void.class, t, canRetry).build();
+        }
+    }
 }

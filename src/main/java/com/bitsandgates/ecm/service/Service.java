@@ -46,12 +46,25 @@ public class Service {
         for (int i = 0; i < maxTries; i++) {
             response = operation.execute(new OperationContext(this, request));
             if (response.getRetry() == null) {
-                break;
+                return response;
             }
             request = request.toBuilder().retry(response.getRetry()).retryCount(i + 1).build();
         }
         if (response.getRetry() != null) {
             onErrorAfterRetries(request, response, maxTries);
+        }
+        return response;
+    }
+
+    Response loopBranch(Loop loop) {
+        Operation operation = Optional.ofNullable(operations.get(loop.getOperationId())).orElseThrow(IllegalArgumentException::new);
+        Response response = null;
+        for (int i = 0; i < maxTries; i++) {
+            response = operation.loopBranch(loop);
+            if (response.getRetry() == null) {
+                return response;
+            }
+            loop = loop.toBuilder().retry(response.getRetry()).retryCount(i + 1).build();
         }
         return response;
     }
