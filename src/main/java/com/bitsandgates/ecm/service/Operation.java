@@ -39,7 +39,7 @@ import lombok.SneakyThrows;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class Operation {
 
-    private static final int MAX_LOOP_CONCURRENCYE = 10;
+    private static final int MAX_LOOP_CONCURRENCY = 10;
 
     @Getter
     private final String id;
@@ -224,8 +224,8 @@ public class Operation {
 
     private static int getConcurrency(Loop loop) {
         int concurrency = loop.getConcurrency();
-        if (concurrency == 0 || concurrency > MAX_LOOP_CONCURRENCYE) {
-            concurrency = MAX_LOOP_CONCURRENCYE;
+        if (concurrency == 0 || concurrency > MAX_LOOP_CONCURRENCY) {
+            concurrency = MAX_LOOP_CONCURRENCY;
         }
         return concurrency;
     }
