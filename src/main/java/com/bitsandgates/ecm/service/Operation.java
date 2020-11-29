@@ -173,7 +173,11 @@ public class Operation {
             result.complete(output);
         } else {
             BranchContext ctx = new BranchContext(branch.getId(), context, 0, extractDependencyResults(branch, results));
-            context.getService().getExecutorService().execute(() -> result.complete(branch.run(ctx.waitForDependencies())));
+            try {
+                context.getService().getExecutorService().execute(() -> result.complete(branch.run(ctx.waitForDependencies())));
+            } catch (RuntimeException e) {
+                result.complete(ctx.outputBuilder(Void.class, e, false).build());
+            }
         }
     }
 
@@ -188,6 +192,8 @@ public class Operation {
                 runner.run(() -> result.complete(branch.run(ctx, index)));
             } catch (InterruptedException e) {
                 result.complete(ctx.outputBuilder(Void.class, e, true).build());
+            } catch (RuntimeException e) {
+                result.complete(ctx.outputBuilder(Void.class, e, false).build());
             }
         }
     }
