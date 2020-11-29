@@ -177,7 +177,6 @@ public class Operation {
         }
     }
 
-    @SneakyThrows
     void executeBranchIteration(Runner runner, OperationContext context, Branch branch, int index,
             Map<String, CompletableFuture<BranchOutput<?>>> results,
             BranchOutput<?> output) {
@@ -186,7 +185,11 @@ public class Operation {
             result.complete(output);
         } else {
             BranchContext ctx = new BranchContext(branch.getId(), context, index, emptyList());
-            runner.run(() -> result.complete(branch.run(ctx, index)));
+            try {
+                runner.run(() -> result.complete(branch.run(ctx, index)));
+            } catch (InterruptedException e) {
+                result.complete(ctx.outputBuilder(Void.class, e, true).build());
+            }
         }
     }
 

@@ -11,6 +11,7 @@ package com.bitsandgates.ecm.service;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,21 +31,36 @@ public class ThrottledExecutorService {
 
         private final BlockingQueue<Runnable> queue;
 
+        private AtomicBoolean interrupted = new AtomicBoolean();
+
         public Runner(int size) {
             queue = new ArrayBlockingQueue<>(size, true);
             executorService.execute(this);
         }
 
         public void run(Runnable r) throws InterruptedException {
-            queue.put(r);
+            if (!interrupted.get()) {
+                try {
+                    queue.put(r);
+                } catch (InterruptedException e) {
+                    interrupted.set(true);
+                    throw e;
+                }
+            }
         }
 
-        public void close() throws InterruptedException {
-            queue.put(killSignal);
+        public void close() {
+            if (!interrupted.get()) {
+                try {
+                    queue.put(killSignal);
+                } catch (InterruptedException e) {
+                    interrupted.set(true);
+                }
+            }
         }
 
         public void run() {
-            while (true) {
+            while (!interrupted.get()) {
                 try {
                     Runnable r = queue.take();
                     if (r == killSignal) {
@@ -52,6 +68,7 @@ public class ThrottledExecutorService {
                     }
                     executorService.execute(r);
                 } catch (InterruptedException e) {
+                    interrupted.set(true);
                     break;
                 }
             }
