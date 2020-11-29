@@ -178,8 +178,7 @@ public class Operation {
     }
 
     void executeBranchIteration(Runner runner, OperationContext context, Branch branch, int index,
-            Map<String, CompletableFuture<BranchOutput<?>>> results,
-            BranchOutput<?> output) {
+            Map<String, CompletableFuture<BranchOutput<?>>> results, BranchOutput<?> output) {
         CompletableFuture<BranchOutput<?>> result = results.get(indexedResultKey(branch.getId(), index));
         if (output != null && branch.isDeterministic()) {
             result.complete(output);
