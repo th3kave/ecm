@@ -69,7 +69,6 @@ public class ThrottledExecutorService {
                     executorService.execute(r);
                 } catch (InterruptedException e) {
                     interrupted.set(true);
-                    break;
                 }
             }
         }
