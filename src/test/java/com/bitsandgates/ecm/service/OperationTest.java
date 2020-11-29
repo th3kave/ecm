@@ -231,7 +231,7 @@ public class OperationTest {
 
         assertNotNull(response);
 
-        verify(opWithLoop, times(count)).branch3(any(BranchContext.class));
+        verify(opWithLoop, times(count)).branch3(any(BranchContext.class), any(int.class));
     }
 
     @Test
@@ -256,7 +256,7 @@ public class OperationTest {
         loop = loop.toBuilder().retry(response.getRetry()).build();
         response = operation.loopBranch(loop);
 
-        verify(opWithLoop, times(count + 1)).branch4(any(BranchContext.class));
+        verify(opWithLoop, times(count + 1)).branch4(any(BranchContext.class), any(int.class));
     }
 
     static BranchOutput<?> getBranchOutput(List<BranchOutput<?>> outputs, String branchId) {
@@ -337,13 +337,12 @@ public class OperationTest {
     static class OpWithLoop extends Op {
 
         @LoopBranch
-        public BranchOutput<?> branch3(BranchContext context) {
+        public BranchOutput<?> branch3(BranchContext context, int index) {
             return context.outputBuilder(Void.class).build();
         }
 
         @LoopBranch
-        public BranchOutput<?> branch4(BranchContext context) {
-            int index = context.getIndex();
+        public BranchOutput<?> branch4(BranchContext context, int index) {
             if (context.getRetryCount() == 0 && index == 0) {
                 throw new RuntimeException();
             }

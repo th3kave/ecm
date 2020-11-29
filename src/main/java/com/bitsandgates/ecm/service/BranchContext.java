@@ -34,6 +34,7 @@ public class BranchContext {
 
     private final OperationContext operationContext;
 
+    @Getter(AccessLevel.NONE)
     private final int index;
     
     @Getter(AccessLevel.NONE)

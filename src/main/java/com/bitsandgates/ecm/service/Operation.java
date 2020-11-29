@@ -186,7 +186,7 @@ public class Operation {
             result.complete(output);
         } else {
             BranchContext ctx = new BranchContext(branch.getId(), context, index, emptyList());
-            runner.run(() -> result.complete(branch.run(ctx)));
+            runner.run(() -> result.complete(branch.run(ctx, index)));
         }
     }
 

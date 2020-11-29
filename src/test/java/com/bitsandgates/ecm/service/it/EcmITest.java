@@ -229,8 +229,8 @@ public class EcmITest {
 
         @Transactional
         @LoopBranch
-        public BranchOutput<Void> loop(BranchContext context) {
-            String sql = String.format("insert into test values('%d', 'b')", context.getIndex() + 10);
+        public BranchOutput<Void> loop(BranchContext context, int index) {
+            String sql = String.format("insert into test values('%d', 'b')", index + 10);
             jdbcTemplate.execute(sql);
             return context.outputBuilder(Void.class).build();
         }
