@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
 import com.bitsandgates.ecm.ProxyFactory;
@@ -124,7 +125,9 @@ public class Operation {
 
         Map<String, CompletableFuture<BranchOutput<?>>> results = initResults();
 
-        branches.forEach(branch -> executeBranch(context, branch, results, outputs.get(branch.getId())));
+        ExecutorService executor = context.getService().getExecutorService();
+
+        branches.forEach(branch -> executeBranch(executor, context, branch, results, outputs.get(branch.getId())));
 
         combineAllFutures(results.values()).get().forEach(output -> context.addBranchOutput(output));
 
@@ -151,9 +154,11 @@ public class Operation {
         Branch branch = loopBranches.get(loop.getBranchId());
 
         Map<String, CompletableFuture<BranchOutput<?>>> results = initResults(loop.getBranchId(), loop.getCount());
+
         ThrottledExecutorService executor = context.getService().getThrottledExecutorService();
 
         Runner runner = executor.newRunner(getConcurrency(loop));
+
         try {
             for (int i = 0; i < loop.getCount(); i++) {
                 executeBranchIteration(runner, context, branch, i, results, outputs.get(indexedResultKey(branch.getId(), i)));
@@ -166,15 +171,15 @@ public class Operation {
         return getResponse(context);
     }
 
-    void executeBranch(OperationContext context, Branch branch, Map<String, CompletableFuture<BranchOutput<?>>> results,
-            BranchOutput<?> output) {
+    void executeBranch(ExecutorService executor, OperationContext context, Branch branch,
+            Map<String, CompletableFuture<BranchOutput<?>>> results, BranchOutput<?> output) {
         CompletableFuture<BranchOutput<?>> result = results.get(branch.getId());
         if (output != null && branch.isDeterministic()) {
             result.complete(output);
         } else {
             BranchContext ctx = new BranchContext(branch.getId(), context, 0, extractDependencyResults(branch, results));
             try {
-                context.getService().getExecutorService().execute(() -> result.complete(branch.run(ctx.waitForDependencies())));
+                executor.execute(() -> result.complete(branch.run(ctx.waitForDependencies())));
             } catch (RuntimeException e) {
                 result.complete(ctx.outputBuilder(Void.class, e, false).build());
             }
