@@ -223,7 +223,7 @@ public class Operation {
         return branches.stream().collect(toMap(Branch::getId, __ -> new CompletableFuture<>()));
     }
 
-    private Map<String, CompletableFuture<BranchOutput<?>>> initResults(String branchId, int count) {
+    private static Map<String, CompletableFuture<BranchOutput<?>>> initResults(String branchId, int count) {
         Map<String, CompletableFuture<BranchOutput<?>>> results = new HashMap<>();
         for (int i = 0; i < count; i++) {
             results.put(indexedResultKey(branchId, i), new CompletableFuture<>());
