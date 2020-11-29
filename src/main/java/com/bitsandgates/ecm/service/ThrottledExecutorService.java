@@ -33,8 +33,8 @@ public class ThrottledExecutorService {
 
         private AtomicBoolean stop = new AtomicBoolean();
 
-        public Runner(int size) {
-            queue = new ArrayBlockingQueue<>(size, true);
+        public Runner(int concurrency) {
+            queue = new ArrayBlockingQueue<>(concurrency, true);
             executorService.execute(this);
         }
 
