@@ -31,7 +31,7 @@ public class ThrottledExecutorService {
 
         private final BlockingQueue<Runnable> queue;
 
-        private AtomicBoolean interrupted = new AtomicBoolean();
+        private AtomicBoolean stop = new AtomicBoolean();
 
         public Runner(int size) {
             queue = new ArrayBlockingQueue<>(size, true);
@@ -39,28 +39,28 @@ public class ThrottledExecutorService {
         }
 
         public void run(Runnable r) throws InterruptedException {
-            if (!interrupted.get()) {
+            if (!stop.get()) {
                 try {
                     queue.put(r);
                 } catch (InterruptedException e) {
-                    interrupted.set(true);
+                    stop.set(true);
                     throw e;
                 }
             }
         }
 
         public void close() {
-            if (!interrupted.get()) {
+            if (!stop.get()) {
                 try {
                     queue.put(killSignal);
                 } catch (InterruptedException e) {
-                    interrupted.set(true);
+                    stop.set(true);
                 }
             }
         }
 
         public void run() {
-            while (!interrupted.get()) {
+            while (!stop.get()) {
                 try {
                     Runnable r = queue.take();
                     if (r == killSignal) {
@@ -68,7 +68,7 @@ public class ThrottledExecutorService {
                     }
                     executorService.execute(r);
                 } catch (InterruptedException e) {
-                    interrupted.set(true);
+                    stop.set(true);
                 }
             }
         }
