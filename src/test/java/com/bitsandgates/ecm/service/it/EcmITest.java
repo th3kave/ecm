@@ -128,7 +128,6 @@ public class EcmITest {
             return context.outputBuilder(String.class).result(in.getValue()).build();
         }
 
-        @Transactional
         @Branch(dependencies = "branch1")
         public BranchOutput<String> successBranch(BranchContext context) {
             BranchInput<String> in = context.getInput();
