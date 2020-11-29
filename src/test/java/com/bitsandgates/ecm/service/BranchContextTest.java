@@ -41,7 +41,7 @@ public class BranchContextTest {
 
     @SuppressWarnings("unchecked")
     private BranchContext createContext(CompletableFuture<BranchOutput<?>>... futures) {
-        return new BranchContext(branchId, operationContext, asList(futures));
+        return new BranchContext(branchId, operationContext, 0, asList(futures));
     }
 
     @SuppressWarnings("unchecked")

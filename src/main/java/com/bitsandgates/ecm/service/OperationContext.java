@@ -17,7 +17,6 @@ import com.bitsandgates.ecm.domain.BranchInput;
 import com.bitsandgates.ecm.domain.BranchOutput;
 import com.bitsandgates.ecm.domain.Request;
 import com.bitsandgates.ecm.domain.Response;
-import com.bitsandgates.ecm.domain.Retry;
 
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -25,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 @Getter
-//@Builder
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class OperationContext {
 
@@ -48,25 +46,12 @@ public class OperationContext {
         return outputs;
     }
 
-    boolean hasError() {
-        return branchOutputs.values().stream().filter(o -> o.isError()).findFirst().map(__ -> true).orElse(false);
-    }
-
     boolean hasRetry() {
         return branchOutputs.values().stream().filter(o -> o.isRetry()).findFirst().map(__ -> true).orElse(false);
     }
 
-    Retry getRetry() {
-        return request.getRetry();
-    }
-
     void addBranchOutput(BranchOutput<?> output) {
         getOutputs(output.getBranchId()).addOutput(output);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> BranchOutput<T> getBranchOutput(String branchId) {
-        return (BranchOutput<T>) getOutputs(branchId).getOutput(0);
     }
 
     public List<BranchOutput<?>> getBrancheOutputs() {

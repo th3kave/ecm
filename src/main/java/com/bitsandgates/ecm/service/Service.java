@@ -18,18 +18,26 @@ import com.bitsandgates.ecm.domain.Response;
 
 import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@RequiredArgsConstructor
 public class Service {
 
     @Getter(AccessLevel.PACKAGE)
     private final ExecutorService executorService;
 
+    @Getter(AccessLevel.PACKAGE)
+    private final ThrottledExecutorService throttledExecutorService;
+
     private final int maxTries;
+
+    // Executors.newCachedThreadPool() recommended
+    public Service(ExecutorService executorService, int maxTries) {
+        this.executorService = executorService;
+        this.throttledExecutorService = new ThrottledExecutorService(executorService);
+        this.maxTries = maxTries;
+    }
 
     private Map<String, Operation> operations = new HashMap<>();
 

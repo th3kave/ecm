@@ -34,23 +34,30 @@ public class BranchContext {
 
     private final OperationContext operationContext;
 
+    private final int index;
+    
     @Getter(AccessLevel.NONE)
     private final List<CompletableFuture<BranchOutput<?>>> dependencyFutures;
 
     @Getter(AccessLevel.NONE)
     private Map<String, BranchOutput<?>> dependencies = new HashMap<>();
+    
+    public String getTraceId() {
+        return operationContext.getTraceId();
+    }
 
     public <T> BranchInput<T> getInput() {
         return operationContext.getBranchInput();
     }
 
     public <T> BranchOutput.BranchOutputBuilder<T> outputBuilder(Class<T> clazz) {
-        return BranchOutput.<T>builder().branchId(branchId);
+        return BranchOutput.<T>builder().branchId(branchId).index(index);
     }
 
     public <T> BranchOutput.BranchOutputBuilder<T> outputBuilder(Class<T> clazz, Throwable e, boolean canRetry) {
         return BranchOutput.<T>builder()
                 .branchId(branchId)
+                .index(index)
                 .error(BranchError.builder()
                         .errorMessage(e.getMessage())
                         .errorTrace(Utils.traceToSring(e))
@@ -65,6 +72,7 @@ public class BranchContext {
         BranchError error = outputWithError.getError();
         return BranchOutput.<T>builder()
                 .branchId(branchId)
+                .index(index)
                 .error(BranchError.builder()
                         .errorMessage(String.format("A branch this branch dependens on [%s] did not complete because of [%s]",
                                 outputWithError.getBranchId(), error))

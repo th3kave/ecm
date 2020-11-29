@@ -64,28 +64,6 @@ class Utils {
         }
     }
 
-    private static void validateLoopBranchMethodSignature(Method method) {
-        if (!BranchOutput.class.isAssignableFrom(method.getReturnType())) {
-            throw new OperationValidationException(
-                    String.format("Invalid [branch] return type [%s] must be assignable to [BranchOutput]",
-                            method.getReturnType().getSimpleName()));
-        }
-        if (method.getParameterCount() != 2) {
-            throw new OperationValidationException(
-                    String.format("Invalid [branch] parameter count [%d] must be [1]", method.getParameterCount()));
-        }
-        if (!BranchContext.class.isAssignableFrom(method.getParameters()[0].getType())) {
-            throw new OperationValidationException(
-                    String.format("Invalid [branch] parameter type [%s] must be assignable to [BranchContext]",
-                            method.getParameters()[0].getType().getSimpleName()));
-        }
-        if (!int.class.isAssignableFrom(method.getParameters()[1].getType())) {
-            throw new OperationValidationException(
-                    String.format("Invalid [branch] parameter type [%s] must be assignable to [int]",
-                            method.getParameters()[1].getType().getSimpleName()));
-        }
-    }
-
     private static void validateBeforeBranchesMethodSignature(Method method) {
         if (!BranchInput.class.isAssignableFrom(method.getReturnType())) {
             throw new OperationValidationException(
@@ -137,7 +115,7 @@ class Utils {
     static Optional<Branch> createLoopBranch(Object obj, Method method, ProxyFactory proxyFactory) {
         LoopBranch branch = method.getAnnotation(LoopBranch.class);
         if (branch != null) {
-            validateLoopBranchMethodSignature(method);
+            validateBranchMethodSignature(method);
             String branchId = branch.branchId();
             if (branchId.length() == 0) {
                 branchId = method.getName();

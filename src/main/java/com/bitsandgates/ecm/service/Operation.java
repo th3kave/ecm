@@ -21,8 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 import com.bitsandgates.ecm.ProxyFactory;
@@ -31,6 +29,7 @@ import com.bitsandgates.ecm.domain.BranchOutput;
 import com.bitsandgates.ecm.domain.Request;
 import com.bitsandgates.ecm.domain.Response;
 import com.bitsandgates.ecm.domain.Retry;
+import com.bitsandgates.ecm.service.ThrottledExecutorService.Runner;
 
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -152,15 +151,17 @@ public class Operation {
         Branch branch = loopBranches.get(loop.getBranchId());
 
         Map<String, CompletableFuture<BranchOutput<?>>> results = initResults(loop.getBranchId(), loop.getCount());
-        ExecutorService executor = Executors.newFixedThreadPool(getConcurrency(loop));
+        ThrottledExecutorService executor = context.getService().getThrottledExecutorService();
 
-        for (int i = 0; i < loop.getCount(); i++) {
-            executeBranchIteration(executor, context, branch, i, results, outputs.get(indexedResultKey(branch.getId(), i)));
+        Runner runner = executor.newRunner(getConcurrency(loop));
+        try {
+            for (int i = 0; i < loop.getCount(); i++) {
+                executeBranchIteration(runner, context, branch, i, results, outputs.get(indexedResultKey(branch.getId(), i)));
+            }
+        } finally {
+            runner.close();
         }
-
         combineAllFutures(results.values()).get().forEach(output -> context.addBranchOutput(output));
-
-        executor.shutdown();
 
         return getResponse(context);
     }
@@ -171,20 +172,21 @@ public class Operation {
         if (output != null && branch.isDeterministic()) {
             result.complete(output);
         } else {
-            BranchContext ctx = new BranchContext(branch.getId(), context, extractDependencyResults(branch, results));
+            BranchContext ctx = new BranchContext(branch.getId(), context, 0, extractDependencyResults(branch, results));
             context.getService().getExecutorService().execute(() -> result.complete(branch.run(ctx.waitForDependencies())));
         }
     }
 
-    void executeBranchIteration(ExecutorService executor, OperationContext context, Branch branch, int index,
+    @SneakyThrows
+    void executeBranchIteration(Runner runner, OperationContext context, Branch branch, int index,
             Map<String, CompletableFuture<BranchOutput<?>>> results,
             BranchOutput<?> output) {
         CompletableFuture<BranchOutput<?>> result = results.get(indexedResultKey(branch.getId(), index));
         if (output != null && branch.isDeterministic()) {
             result.complete(output);
         } else {
-            BranchContext ctx = new BranchContext(branch.getId(), context, emptyList());
-            executor.execute(() -> result.complete(branch.run(ctx, index)));
+            BranchContext ctx = new BranchContext(branch.getId(), context, index, emptyList());
+            runner.run(() -> result.complete(branch.run(ctx)));
         }
     }
 
@@ -221,11 +223,11 @@ public class Operation {
     }
 
     private static int getConcurrency(Loop loop) {
-        int size = loop.getConcurrency();
-        if (size == 0 || size > MAX_LOOP_CONCURRENCYE) {
-            size = MAX_LOOP_CONCURRENCYE;
+        int concurrency = loop.getConcurrency();
+        if (concurrency == 0 || concurrency > MAX_LOOP_CONCURRENCYE) {
+            concurrency = MAX_LOOP_CONCURRENCYE;
         }
-        return size;
+        return concurrency;
     }
 
     private Response getResponse(OperationContext ctx) {

@@ -1,3 +1,11 @@
+/*
+Copyright (c) 2020, Kayvan Mojarrad
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. 
+*/
+
 package com.bitsandgates.ecm.service;
 
 import java.util.ArrayList;
@@ -9,22 +17,14 @@ public class BranchOutputs {
 
     private List<BranchOutput<?>> outputs = new ArrayList<>();
 
-    boolean isError() {
-        return outputs.stream().filter(o -> o.isError()).findFirst().map(__ -> true).orElse(false);
-    }
-
     boolean isRetry() {
         return outputs.stream().filter(o -> o.isRetry()).findFirst().map(__ -> true).orElse(false);
     }
-    
+
     void addOutput(BranchOutput<?> output) {
         outputs.add(output);
     }
-    
-    BranchOutput<?> getOutput(int index) {
-        return outputs.get(index);
-    }
-    
+
     List<BranchOutput<?>> getAll() {
         return new ArrayList<>(outputs);
     }

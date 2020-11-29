@@ -62,7 +62,7 @@ public class UtilsTest {
 
     @Test
     void given_validLoopBranchMethod_when_createBranch_then_created() throws Exception {
-        Optional<Branch> branch = Utils.createLoopBranch(this, getClass().getMethod("validLoopBranch", BranchContext.class, int.class),
+        Optional<Branch> branch = Utils.createLoopBranch(this, getClass().getMethod("validLoopBranch", BranchContext.class),
                 null);
         assertThat(branch.isPresent()).isTrue();
     }
@@ -100,7 +100,7 @@ public class UtilsTest {
     }
 
     @LoopBranch
-    public BranchOutput<?> validLoopBranch(BranchContext context, int i) {
+    public BranchOutput<?> validLoopBranch(BranchContext context) {
         return null;
     }
 
@@ -121,7 +121,7 @@ public class UtilsTest {
 
         public ExtendedBranchContext(String branchId, OperationContext operationContext,
                 List<CompletableFuture<BranchOutput<?>>> dependencyFutures) {
-            super(branchId, operationContext, dependencyFutures);
+            super(branchId, operationContext, 0, dependencyFutures);
         }
     }
 

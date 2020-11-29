@@ -43,6 +43,8 @@ public class OperationTest {
 
     private static final ExecutorService executorService = Executors.newCachedThreadPool();
 
+    private static final ThrottledExecutorService throttledExecutorService = new ThrottledExecutorService(executorService);
+
     @Mock
     private Service service;
 
@@ -75,7 +77,7 @@ public class OperationTest {
         Request request = Request.builder().traceId(traceId).operatonId(operationId).build();
         return createContext(operationId, request);
     }
-    
+
     private OperationContext createContext(String operationId, Request request) {
         return new OperationContext(service, request);
     }
@@ -190,7 +192,7 @@ public class OperationTest {
         verify(opWithError, times(2)).failWithRetry(any(BranchContext.class));
         verify(opWithError, times(1)).failWithoutRetry(any(BranchContext.class));
     }
-    
+
     @Test
     void given_requestWithRetry_when_executeRequest_then_onlyFailedBranchesAndNonDeterministicExecuted() {
         when(service.getExecutorService()).thenReturn(executorService);
@@ -210,22 +212,51 @@ public class OperationTest {
         verify(opWithNonDeterministicBranch, times(1)).branch2(any(BranchContext.class));
         verify(opWithNonDeterministicBranch, times(2)).fail(any(BranchContext.class));
     }
-    
+
     @Test
     void given_requestWithLoop_when_executeRequest_then_branchLooped() {
+        when(service.getThrottledExecutorService()).thenReturn(throttledExecutorService);
         Operation operation = Operation.create(opWithLoop);
         OperationContext context = createContext(OpWithLoop.class.getName());
+
+        int count = 1000;
+
         Loop loop = Loop.builder()
                 .branchId("branch3")
                 .concurrency(5)
-                .count(10)
+                .count(count)
                 .context(context)
                 .build();
         Response response = operation.loopBranch(loop);
 
         assertNotNull(response);
 
-        verify(opWithLoop, times(10)).branch3(any(BranchContext.class), any(int.class));
+        verify(opWithLoop, times(count)).branch3(any(BranchContext.class));
+    }
+
+    @Test
+    void given_requestWithLoopAndRetry_when_executeRequest_then_onlyFailedBranchesAndNonDeterministicExecuted() throws InterruptedException {
+        when(service.getThrottledExecutorService()).thenReturn(throttledExecutorService);
+        Operation operation = Operation.create(opWithLoop);
+        OperationContext context = createContext(OpWithLoop.class.getName());
+
+        int count = 10;
+
+        Loop loop = Loop.builder()
+                .branchId("branch4")
+                .concurrency(5)
+                .count(count)
+                .context(context)
+                .build();
+        Response response = operation.loopBranch(loop);
+
+        assertNotNull(response);
+        assertNotNull(response.getRetry());
+
+        loop = loop.toBuilder().retry(response.getRetry()).build();
+        response = operation.loopBranch(loop);
+
+        verify(opWithLoop, times(count + 1)).branch4(any(BranchContext.class));
     }
 
     static BranchOutput<?> getBranchOutput(List<BranchOutput<?>> outputs, String branchId) {
@@ -306,8 +337,16 @@ public class OperationTest {
     static class OpWithLoop extends Op {
 
         @LoopBranch
-        public BranchOutput<?> branch3(BranchContext context, int index) {
-            System.out.println(index);
+        public BranchOutput<?> branch3(BranchContext context) {
+            return context.outputBuilder(Void.class).build();
+        }
+
+        @LoopBranch
+        public BranchOutput<?> branch4(BranchContext context) {
+            int index = context.getIndex();
+            if (context.getRetryCount() == 0 && index == 0) {
+                throw new RuntimeException();
+            }
             return context.outputBuilder(Void.class).build();
         }
     }
