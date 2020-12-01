@@ -97,7 +97,7 @@ public class EcmITest {
                 .payload(testPayload)
                 .build();
         Response response = service.process(request);
-        List<BranchOutput<?>> payload = (List<BranchOutput<?>>) response.getRetry().getOutputs();
+        List<BranchOutput<?>> payload = response.getRetry().getOutputs();
         assertThat(payload).hasSize(4);
         assertThat(payload.stream().filter(e -> e.getBranchId().equals("successBranch")).findFirst().map(o -> o.getResult()).get())
                 .isEqualTo(11);
