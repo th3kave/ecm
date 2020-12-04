@@ -70,13 +70,13 @@ public class OperationContext {
         return Response.builder().traceId(request.getTraceId()).operationId(request.getOperatonId());
     }
 
-    Response loopBranch(String branchId, Collection<?> collection, int concurrency, BranchInput<?> input) {
+    Response loopBranch(String branchId, Collection<?> collection, int concurrency) {
         return service.loopBranch(Loop.builder()
                 .context(new OperationContext(service, request))
                 .branchId(branchId)
                 .collection(collection)
                 .concurrency(concurrency)
-                .input(input)
+                .input(branchInput)
                 .build());
     }
 

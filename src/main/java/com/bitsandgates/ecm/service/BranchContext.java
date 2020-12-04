@@ -116,18 +116,10 @@ public class BranchContext {
     }
 
     public Response loopBranch(String branchId, Collection<?> collection) {
-        return loopBranch(branchId, collection, 0, null);
+        return loopBranch(branchId, collection, 0);
     }
 
     public Response loopBranch(String branchId, Collection<?> collection, int concurrency) {
-        return loopBranch(branchId, collection, concurrency, null);
-    }
-
-    public Response loopBranch(String branchId, Collection<?> collection, BranchInput<?> input) {
-        return loopBranch(branchId, collection, 0, input);
-    }
-
-    public Response loopBranch(String branchId, Collection<?> collection, int concurrency, BranchInput<?> input) {
-        return operationContext.loopBranch(branchId, collection, concurrency, input);
+        return operationContext.loopBranch(branchId, collection, concurrency);
     }
 }

@@ -215,17 +215,17 @@ public class EcmITest {
         }
 
         @Transactional
-        @Branch(dependencies = { "branch1", "branch2" })
+        @Branch(dependencies = { "branch1", "branch2", "loopCaller" })
         public BranchOutput<Integer> successBranch(BranchContext context) {
             Integer count = jdbcTemplate.queryForObject("select count(*) from test", Integer.class);
             return context.outputBuilder(Integer.class).result(count).build();
         }
 
         @Branch
-        public BranchOutput<Object> loopCaller(BranchContext context) {
+        public BranchOutput<Object> loopCaller(BranchContext context) throws Exception {
             List<String> list = new ArrayList<>();
             for (int i = 0; i < 10; i++) {
-                list.add("test");
+                list.add("t_" + i);
             }
             Response response = context.loopBranch("loop", list);
             return context.outputBuilder(Object.class).result(response.getPayload()).build();
