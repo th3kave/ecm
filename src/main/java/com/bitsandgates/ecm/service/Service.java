@@ -32,14 +32,14 @@ public class Service {
 
     private final int maxTries;
 
+    private Map<String, Operation> operations = new HashMap<>();
+
     // Executors.newCachedThreadPool() recommended
     public Service(ExecutorService executorService, int maxTries) {
         this.executorService = executorService;
         this.throttledExecutorService = new ThrottledExecutorService(executorService);
         this.maxTries = maxTries;
     }
-
-    private Map<String, Operation> operations = new HashMap<>();
 
     void addOperation(Operation operation) {
         if (operations.containsKey(operation.getId())) {
