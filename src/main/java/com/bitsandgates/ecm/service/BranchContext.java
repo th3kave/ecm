@@ -11,6 +11,7 @@ package com.bitsandgates.ecm.service;
 import static com.bitsandgates.ecm.service.Utils.combineAllFutures;
 import static java.util.stream.Collectors.toMap;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -114,11 +115,19 @@ public class BranchContext {
         return operationContext.getRetryCount();
     }
 
-    public Response loopBranch(String branchId, int count, BranchInput<?> input) {
-        return loopBranch(branchId, count, 0, input);
+    public Response loopBranch(String branchId, Collection<?> collection) {
+        return loopBranch(branchId, collection, 0, null);
     }
 
-    public Response loopBranch(String branchId, int count, int concurrency, BranchInput<?> input) {
-        return operationContext.loopBranch(branchId, count, concurrency, input);
+    public Response loopBranch(String branchId, Collection<?> collection, int concurrency) {
+        return loopBranch(branchId, collection, concurrency, null);
+    }
+
+    public Response loopBranch(String branchId, Collection<?> collection, BranchInput<?> input) {
+        return loopBranch(branchId, collection, 0, input);
+    }
+
+    public Response loopBranch(String branchId, Collection<?> collection, int concurrency, BranchInput<?> input) {
+        return operationContext.loopBranch(branchId, collection, concurrency, input);
     }
 }

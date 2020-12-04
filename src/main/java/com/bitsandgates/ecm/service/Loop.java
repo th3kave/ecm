@@ -8,6 +8,8 @@ LICENSE file in the root directory of this source tree.
 
 package com.bitsandgates.ecm.service;
 
+import java.util.Collection;
+
 import com.bitsandgates.ecm.domain.BranchInput;
 import com.bitsandgates.ecm.domain.Retry;
 
@@ -23,8 +25,6 @@ class Loop {
     private OperationContext context;
 
     private String branchId;
-
-    private int count;
     
     private int concurrency;
 
@@ -34,7 +34,13 @@ class Loop {
 
     private BranchInput<?> input;
     
+    private Collection<?> collection;
+    
     public String getOperationId() {
         return context.getOperationId();
+    }
+    
+    public int getCount() {
+        return collection.size();
     }
 }

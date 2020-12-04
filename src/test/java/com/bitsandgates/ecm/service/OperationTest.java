@@ -218,20 +218,23 @@ public class OperationTest {
         when(service.getThrottledExecutorService()).thenReturn(throttledExecutorService);
         Operation operation = Operation.create(opWithLoop);
         OperationContext context = createContext(OpWithLoop.class.getName());
+        
+        List<String> list = new ArrayList<>();
+        list.add("test");
 
-        int count = 1000;
+        int count = list.size();
 
         Loop loop = Loop.builder()
                 .branchId("branch3")
                 .concurrency(5)
-                .count(count)
+                .collection(list)
                 .context(context)
                 .build();
         Response response = operation.loopBranch(loop);
 
         assertNotNull(response);
 
-        verify(opWithLoop, times(count)).branch3(any(BranchContext.class), any(int.class));
+        verify(opWithLoop, times(count)).branch3(any(BranchContext.class), any(Object.class), any(int.class));
     }
 
     @Test
@@ -240,12 +243,15 @@ public class OperationTest {
         Operation operation = Operation.create(opWithLoop);
         OperationContext context = createContext(OpWithLoop.class.getName());
 
-        int count = 10;
+        List<String> list = new ArrayList<>();
+        list.add("test");
+
+        int count = list.size();
 
         Loop loop = Loop.builder()
                 .branchId("branch4")
                 .concurrency(5)
-                .count(count)
+                .collection(list)
                 .context(context)
                 .build();
         Response response = operation.loopBranch(loop);
@@ -256,7 +262,7 @@ public class OperationTest {
         loop = loop.toBuilder().retry(response.getRetry()).build();
         response = operation.loopBranch(loop);
 
-        verify(opWithLoop, times(count + 1)).branch4(any(BranchContext.class), any(int.class));
+        verify(opWithLoop, times(count + 1)).branch4(any(BranchContext.class), any(Object.class), any(int.class));
     }
 
     static BranchOutput<?> getBranchOutput(List<BranchOutput<?>> outputs, String branchId) {
@@ -337,12 +343,12 @@ public class OperationTest {
     static class OpWithLoop extends Op {
 
         @LoopBranch
-        public BranchOutput<?> branch3(BranchContext context, int index) {
+        public BranchOutput<?> branch3(BranchContext context, Object element, int index) {
             return context.outputBuilder(Void.class).build();
         }
 
         @LoopBranch
-        public BranchOutput<?> branch4(BranchContext context, int index) {
+        public BranchOutput<?> branch4(BranchContext context, Object element, int index) {
             if (context.getRetryCount() == 0 && index == 0) {
                 throw new RuntimeException();
             }

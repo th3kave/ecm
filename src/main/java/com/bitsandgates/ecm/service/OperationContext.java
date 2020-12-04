@@ -9,6 +9,7 @@ LICENSE file in the root directory of this source tree.
 package com.bitsandgates.ecm.service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,11 +70,11 @@ public class OperationContext {
         return Response.builder().traceId(request.getTraceId()).operationId(request.getOperatonId());
     }
 
-    Response loopBranch(String branchId, int count, int concurrency, BranchInput<?> input) {
+    Response loopBranch(String branchId, Collection<?> collection, int concurrency, BranchInput<?> input) {
         return service.loopBranch(Loop.builder()
                 .context(new OperationContext(service, request))
                 .branchId(branchId)
-                .count(count)
+                .collection(collection)
                 .concurrency(concurrency)
                 .input(input)
                 .build());

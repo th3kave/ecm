@@ -17,6 +17,7 @@ import static java.util.stream.Collectors.toMap;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -160,8 +161,9 @@ public class Operation {
         Runner runner = executor.newRunner(getConcurrency(loop));
 
         try {
-            for (int i = 0; i < loop.getCount(); i++) {
-                executeBranchIteration(runner, context, branch, i, results, outputs.get(indexedResultKey(branch.getId(), i)));
+            Iterator<?> it = loop.getCollection().iterator();
+            for (int i = 0; it.hasNext(); i++) {
+                executeBranchIteration(runner, context, branch, it.next(), i, results, outputs.get(indexedResultKey(branch.getId(), i)));
             }
         } finally {
             runner.close();
@@ -186,7 +188,7 @@ public class Operation {
         }
     }
 
-    void executeBranchIteration(Runner runner, OperationContext context, Branch branch, int index,
+    void executeBranchIteration(Runner runner, OperationContext context, Branch branch, Object element, int index,
             Map<String, CompletableFuture<BranchOutput<?>>> results, BranchOutput<?> output) {
         CompletableFuture<BranchOutput<?>> result = results.get(indexedResultKey(branch.getId(), index));
         if (output != null && branch.isDeterministic()) {
@@ -194,7 +196,7 @@ public class Operation {
         } else {
             BranchContext ctx = new BranchContext(branch.getId(), context, index, emptyList());
             try {
-                runner.run(() -> result.complete(branch.run(ctx, index)));
+                runner.run(() -> result.complete(branch.run(ctx, element, index)));
             } catch (InterruptedException e) {
                 result.complete(ctx.outputBuilder(Void.class, e, true).build());
             } catch (RuntimeException e) {

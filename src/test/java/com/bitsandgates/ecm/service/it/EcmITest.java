@@ -10,6 +10,7 @@ package com.bitsandgates.ecm.service.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -219,17 +220,21 @@ public class EcmITest {
             Integer count = jdbcTemplate.queryForObject("select count(*) from test", Integer.class);
             return context.outputBuilder(Integer.class).result(count).build();
         }
-        
+
         @Branch
         public BranchOutput<Object> loopCaller(BranchContext context) {
-            Response response = context.loopBranch("loop", 10, null);
+            List<String> list = new ArrayList<>();
+            for (int i = 0; i < 10; i++) {
+                list.add("test");
+            }
+            Response response = context.loopBranch("loop", list);
             return context.outputBuilder(Object.class).result(response.getPayload()).build();
         }
 
         @Transactional
         @LoopBranch
-        public BranchOutput<Void> loop(BranchContext context, int index) {
-            String sql = String.format("insert into test values('%d', 'b')", index + 10);
+        public BranchOutput<Void> loop(BranchContext context, String element, int index) {
+            String sql = String.format("insert into test values('%d', '%s')", index + 10, element);
             jdbcTemplate.execute(sql);
             return context.outputBuilder(Void.class).build();
         }
