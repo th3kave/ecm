@@ -115,11 +115,11 @@ public class BranchContext {
         return operationContext.getRetryCount();
     }
 
-    public Response loopBranch(String branchId, Collection<?> collection) {
-        return loopBranch(branchId, collection, 0);
+    public Response loopBranch(String branchId, Object loopData, Collection<?> collection) {
+        return loopBranch(branchId, loopData, collection, 0);
     }
 
-    public Response loopBranch(String branchId, Collection<?> collection, int concurrency) {
-        return operationContext.loopBranch(branchId, collection, concurrency);
+    public Response loopBranch(String branchId, Object loopData, Collection<?> collection, int concurrency) {
+        return operationContext.loopBranch(branchId, loopData, collection, concurrency);
     }
 }

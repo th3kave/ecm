@@ -19,6 +19,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -234,7 +235,7 @@ public class OperationTest {
 
         assertNotNull(response);
 
-        verify(opWithLoop, times(count)).branch3(any(BranchContext.class), any(Object.class), any(int.class));
+        verify(opWithLoop, times(count)).branch3(any(BranchContext.class), any(), any(Object.class), any(int.class));
     }
 
     @Test
@@ -262,7 +263,7 @@ public class OperationTest {
         loop = loop.toBuilder().retry(response.getRetry()).build();
         response = operation.loopBranch(loop);
 
-        verify(opWithLoop, times(count + 1)).branch4(any(BranchContext.class), any(Object.class), any(int.class));
+        verify(opWithLoop, times(count + 1)).branch4(any(BranchContext.class), any(), any(Object.class), any(int.class));
     }
 
     static BranchOutput<?> getBranchOutput(List<BranchOutput<?>> outputs, String branchId) {
@@ -343,12 +344,12 @@ public class OperationTest {
     static class OpWithLoop extends Op {
 
         @LoopBranch
-        public BranchOutput<?> branch3(BranchContext context, Object element, int index) {
+        public BranchOutput<?> branch3(BranchContext context, Map<String, List<String>> date, Object element, int index) {
             return context.outputBuilder(Void.class).build();
         }
 
         @LoopBranch
-        public BranchOutput<?> branch4(BranchContext context, Object element, int index) {
+        public BranchOutput<?> branch4(BranchContext context, List<String> data, Object element, int index) {
             if (context.getRetryCount() == 0 && index == 0) {
                 throw new RuntimeException();
             }

@@ -8,10 +8,13 @@ LICENSE file in the root directory of this source tree.
 
 package com.bitsandgates.ecm.service.it;
 
+import static java.util.Collections.unmodifiableMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import javax.annotation.PostConstruct;
@@ -227,13 +230,15 @@ public class EcmITest {
             for (int i = 0; i < 10; i++) {
                 list.add("t_" + i);
             }
-            Response response = context.loopBranch("loop", list);
+            Map<String, List<String>> loppData = unmodifiableMap(new HashMap<>());
+            Response response = context.loopBranch("loop", loppData, list);
             return context.outputBuilder(Object.class).result(response.getPayload()).build();
         }
 
         @Transactional
         @LoopBranch
-        public BranchOutput<Void> loop(BranchContext context, String element, int index) {
+        public BranchOutput<Void> loop(BranchContext context, Map<String, List<String>> loopData, String element, int index) {
+            loopData.get("ids");
             String sql = String.format("insert into test values('%d', '%s')", index + 10, element);
             jdbcTemplate.execute(sql);
             return context.outputBuilder(Void.class).build();

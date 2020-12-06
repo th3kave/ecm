@@ -70,7 +70,7 @@ class Utils {
                     String.format("Invalid [branch] return type [%s] must be assignable to [BranchOutput]",
                             method.getReturnType().getSimpleName()));
         }
-        if (method.getParameterCount() != 3) {
+        if (method.getParameterCount() != 4) {
             throw new OperationValidationException(
                     String.format("Invalid [branch] parameter count [%d] must be [1]", method.getParameterCount()));
         }
@@ -84,7 +84,12 @@ class Utils {
                     String.format("Invalid [branch] parameter type [%s] must be assignable to [Object]",
                             method.getParameters()[0].getType().getSimpleName()));
         }
-        if (!int.class.isAssignableFrom(method.getParameters()[2].getType())) {
+        if (!Object.class.isAssignableFrom(method.getParameters()[2].getType())) {
+            throw new OperationValidationException(
+                    String.format("Invalid [branch] parameter type [%s] must be assignable to [Object]",
+                            method.getParameters()[0].getType().getSimpleName()));
+        }
+        if (!int.class.isAssignableFrom(method.getParameters()[3].getType())) {
             throw new OperationValidationException(
                     String.format("Invalid [branch] parameter type [%s] must be assignable to [int]",
                             method.getParameters()[1].getType().getSimpleName()));

@@ -47,9 +47,9 @@ class Branch {
     }
 
     @SneakyThrows
-    public BranchOutput<?> run(BranchContext context, Object element, int index) {
+    public BranchOutput<?> run(BranchContext context, Object loopData, Object element, int index) {
         try {
-            return (BranchOutput<?>) exe.invoke(impl, context, element, index);
+            return (BranchOutput<?>) exe.invoke(impl, context, loopData, element, index);
         } catch (InvocationTargetException e) {
             Throwable t = e.getTargetException();
             boolean canRetry = t instanceof NonRecoverableBranchException == false;

@@ -34,6 +34,8 @@ class Loop {
 
     private BranchInput<?> input;
     
+    private Object loopData;
+    
     private Collection<?> collection;
     
     public String getOperationId() {
