@@ -46,6 +46,8 @@ public class ThrottledExecutorService {
                     stop.set(true);
                     throw e;
                 }
+            } else {
+                throw new IllegalStateException("Runner is in [stopped] state");
             }
         }
 
